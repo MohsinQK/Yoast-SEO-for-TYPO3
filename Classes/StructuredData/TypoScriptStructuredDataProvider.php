@@ -7,7 +7,7 @@ namespace YoastSeoForTypo3\YoastSeo\StructuredData;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
-use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 
 class TypoScriptStructuredDataProvider implements StructuredDataProviderInterface
 {
@@ -23,10 +23,10 @@ class TypoScriptStructuredDataProvider implements StructuredDataProviderInterfac
     public function getData(): array
     {
         $data = [];
+        $structuredDataConfig = $this->getStructuredDataConfig();
+        $contentObjectRenderer = $this->getContentObjectRenderer();
 
-        foreach (
-            $this->getTypoScriptFrontendController()->config['config']['structuredData.']['data.'] ?? [] as $dataConfig
-        ) {
+        foreach ($structuredDataConfig as $dataConfig) {
             if (!isset($dataConfig['type'], $dataConfig['context'])) {
                 continue;
             }
@@ -36,8 +36,8 @@ class TypoScriptStructuredDataProvider implements StructuredDataProviderInterfac
 
             foreach ($config as $key => $value) {
                 $cObject = $key . '.';
-                if (isset($dataConfig[$cObject])) {
-                    $value = $this->getTypoScriptFrontendController()->cObj->stdWrap((string)$key, $dataConfig[$cObject]);
+                if (isset($dataConfig[$cObject]) && $contentObjectRenderer !== null) {
+                    $value = $contentObjectRenderer->stdWrap((string)$key, $dataConfig[$cObject]);
                 }
                 $key = in_array($key, ['type', 'context']) ? '@' . $key : $key;
 
@@ -49,8 +49,31 @@ class TypoScriptStructuredDataProvider implements StructuredDataProviderInterfac
         return $data;
     }
 
-    protected function getTypoScriptFrontendController(): TypoScriptFrontendController
+    /**
+     * @return array<string, mixed>
+     */
+    private function getStructuredDataConfig(): array
     {
-        return $GLOBALS['TSFE'];
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $typoScript = $request->getAttribute('frontend.typoscript');
+            if ($typoScript !== null) {
+                $configArray = $typoScript->getConfigArray();
+                return $configArray['structuredData.']['data.'] ?? [];
+            }
+        }
+        return ($GLOBALS['TSFE'] ?? null)?->config['config']['structuredData.']['data.'] ?? [];
+    }
+
+    private function getContentObjectRenderer(): ?ContentObjectRenderer
+    {
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $cObj = $request->getAttribute('currentContentObject');
+            if ($cObj instanceof ContentObjectRenderer) {
+                return $cObj;
+            }
+        }
+        return ($GLOBALS['TSFE'] ?? null)?->cObj;
     }
 }

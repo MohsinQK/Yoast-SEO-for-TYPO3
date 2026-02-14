@@ -9,6 +9,8 @@ use Psr\Http\Message\UriInterface;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\RootlineUtility;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Routing\RouteNotFoundException;
 use TYPO3\CMS\Core\SingletonInterface;
@@ -79,7 +81,11 @@ class UrlService implements SingletonInterface
      */
     public function getRootLine(int $pageId): array
     {
-        return BackendUtility::BEgetRootLine($pageId);
+        try {
+            return GeneralUtility::makeInstance(RootlineUtility::class, $pageId)->get();
+        } catch (\RuntimeException $e) {
+            return [];
+        }
     }
 
     /**

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace YoastSeoForTypo3\YoastSeo\Widgets;
 
 use TYPO3\CMS\Core\View\ViewInterface;
-use TYPO3\CMS\Fluid\View\StandaloneView;
 use YoastSeoForTypo3\YoastSeo\Traits\BackendUserTrait;
 
 class PageOverviewWidget extends AbstractPageOverviewWidget
@@ -20,7 +19,7 @@ class PageOverviewWidget extends AbstractPageOverviewWidget
         return [];
     }
 
-    protected function assignToView(ViewInterface|StandaloneView $view): void
+    protected function assignToView(ViewInterface $view): void
     {
         $view->assignMultiple([
             'pages' => $this->dataProvider->getPages(),

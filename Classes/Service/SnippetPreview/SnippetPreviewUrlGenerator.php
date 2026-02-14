@@ -7,6 +7,7 @@ namespace YoastSeoForTypo3\YoastSeo\Service\SnippetPreview;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\RootlineUtility;
 use TYPO3\CMS\Frontend\Page\CacheHashCalculator;
 use YoastSeoForTypo3\YoastSeo\Service\UrlService;
 
@@ -98,7 +99,11 @@ class SnippetPreviewUrlGenerator
         // if no preview page was configured
         if (!$previewPageId) {
             $rootPageData = null;
-            $rootLine = BackendUtility::BEgetRootLine($currentPageId);
+            try {
+                $rootLine = GeneralUtility::makeInstance(RootlineUtility::class, $currentPageId)->get();
+            } catch (\RuntimeException $e) {
+                $rootLine = [];
+            }
             $currentPage = reset($rootLine);
             // Allow all doktypes below 200
             // This makes custom doktype work as well with opening a frontend page.

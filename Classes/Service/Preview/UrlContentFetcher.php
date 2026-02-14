@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace YoastSeoForTypo3\YoastSeo\Service\Preview;
 
 use GuzzleHttp\Exception\RequestException;
+use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Exception;
 use TYPO3\CMS\Core\Http\RequestFactory;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class UrlContentFetcher
 {
     public function __construct(
-        protected RequestFactory $requestFactory
+        protected RequestFactory $requestFactory,
+        protected HashService $hashService
     ) {}
 
     public function fetch(string $uriToCheck): string
@@ -23,8 +24,9 @@ class UrlContentFetcher
                 'GET',
                 [
                     'headers' => [
-                        'X-Yoast-Page-Request' => GeneralUtility::hmac(
-                            $uriToCheck
+                        'X-Yoast-Page-Request' => $this->hashService->hmac(
+                            $uriToCheck,
+                            'yoast-seo-page-request'
                         ),
                     ],
                 ]

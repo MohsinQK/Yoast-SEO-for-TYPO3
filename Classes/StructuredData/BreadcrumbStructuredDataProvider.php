@@ -8,7 +8,6 @@ use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 class BreadcrumbStructuredDataProvider implements StructuredDataProviderInterface
 {
@@ -90,7 +89,16 @@ class BreadcrumbStructuredDataProvider implements StructuredDataProviderInterfac
      */
     protected function getRootLine(): array
     {
-        $rootLine = $this->getTyposcriptFrontendController()->rootLine ?: [];
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $pageInformation = $request->getAttribute('frontend.page.information');
+            if ($pageInformation !== null) {
+                $rootLine = $pageInformation->getRootLine() ?: [];
+                ksort($rootLine);
+                return $rootLine;
+            }
+        }
+        $rootLine = ($GLOBALS['TSFE'] ?? null)?->rootLine ?: [];
         ksort($rootLine);
         return $rootLine;
     }
@@ -106,11 +114,6 @@ class BreadcrumbStructuredDataProvider implements StructuredDataProviderInterfac
         } catch (SiteNotFoundException|\InvalidArgumentException) {
             return '';
         }
-    }
-
-    protected function getTyposcriptFrontendController(): TypoScriptFrontendController
-    {
-        return $GLOBALS['TSFE'];
     }
 
     /**

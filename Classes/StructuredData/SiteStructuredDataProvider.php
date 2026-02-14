@@ -6,7 +6,6 @@ namespace YoastSeoForTypo3\YoastSeo\StructuredData;
 
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Site\SiteFinder;
-use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 class SiteStructuredDataProvider implements StructuredDataProviderInterface
 {
@@ -23,16 +22,16 @@ class SiteStructuredDataProvider implements StructuredDataProviderInterface
      */
     public function getData(): array
     {
-        if ($this->getTyposcriptFrontendController()->page === null
-            || (int)$this->getTyposcriptFrontendController()->page['is_siteroot'] !== 1) {
+        $page = $this->getCurrentPage();
+        if ($page === null || (int)($page['is_siteroot'] ?? 0) !== 1) {
             return [];
         }
         return [
             [
                 '@context' => 'https://www.schema.org',
                 '@type' => 'WebSite',
-                'url' => $this->getUrl((int)$this->getTyposcriptFrontendController()->page['uid']),
-                'name' => $this->getName((int)$this->getTyposcriptFrontendController()->page['uid']),
+                'url' => $this->getUrl((int)$page['uid']),
+                'name' => $this->getName((int)$page['uid']),
             ],
         ];
     }
@@ -49,9 +48,19 @@ class SiteStructuredDataProvider implements StructuredDataProviderInterface
         return $rootPageRecord['seo_title'] ?: $rootPageRecord['title'] ?: $this->getUrl($pageId);
     }
 
-    protected function getTyposcriptFrontendController(): TypoScriptFrontendController
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getCurrentPage(): ?array
     {
-        return $GLOBALS['TSFE'];
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $pageInformation = $request->getAttribute('frontend.page.information');
+            if ($pageInformation !== null) {
+                return $pageInformation->getPageRecord();
+            }
+        }
+        return ($GLOBALS['TSFE'] ?? null)?->page;
     }
 
     /**

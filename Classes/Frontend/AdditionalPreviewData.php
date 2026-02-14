@@ -19,7 +19,22 @@ class AdditionalPreviewData implements SingletonInterface
     public function __construct(
         protected YoastRequestService $yoastRequestService
     ) {
-        $this->config = $GLOBALS['TSFE']->tmpl->setup['config.'] ?? [];
+        $this->config = $this->getTypoScriptConfig();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getTypoScriptConfig(): array
+    {
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $typoScript = $request->getAttribute('frontend.typoscript');
+            if ($typoScript !== null) {
+                return $typoScript->getConfigArray() ?? [];
+            }
+        }
+        return ($GLOBALS['TSFE'] ?? null)?->tmpl?->setup['config.'] ?? [];
     }
 
     /**
@@ -49,7 +64,16 @@ class AdditionalPreviewData implements SingletonInterface
             return trim($site->getConfiguration()['websiteTitle']);
         }
 
-        if (!empty($GLOBALS['TSFE']->tmpl->setup['sitetitle'] ?? '')) {
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request !== null) {
+            $typoScript = $request->getAttribute('frontend.typoscript');
+            if ($typoScript !== null) {
+                $setup = $typoScript->getSetupArray();
+                if (!empty($setup['sitetitle'] ?? '')) {
+                    return trim($setup['sitetitle']);
+                }
+            }
+        } elseif (!empty(($GLOBALS['TSFE'] ?? null)?->tmpl?->setup['sitetitle'] ?? '')) {
             return trim($GLOBALS['TSFE']->tmpl->setup['sitetitle']);
         }
 

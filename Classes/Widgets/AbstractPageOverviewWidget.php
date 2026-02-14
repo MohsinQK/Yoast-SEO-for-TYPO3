@@ -10,7 +10,6 @@ use TYPO3\CMS\Core\View\ViewInterface;
 use TYPO3\CMS\Dashboard\Widgets\RequestAwareWidgetInterface;
 use TYPO3\CMS\Dashboard\Widgets\WidgetConfigurationInterface;
 use TYPO3\CMS\Dashboard\Widgets\WidgetInterface;
-use TYPO3\CMS\Fluid\View\StandaloneView;
 use YoastSeoForTypo3\YoastSeo\Widgets\Provider\PageProviderInterface;
 
 if (interface_exists(RequestAwareWidgetInterface::class)) {
@@ -49,7 +48,7 @@ if (interface_exists(RequestAwareWidgetInterface::class)) {
             return $view->render($this->options['template']);
         }
 
-        abstract protected function assignToView(ViewInterface|StandaloneView $view): void;
+        abstract protected function assignToView(ViewInterface $view): void;
     }
 } else {
     abstract class AbstractPageOverviewWidget implements WidgetInterface
@@ -63,7 +62,7 @@ if (interface_exists(RequestAwareWidgetInterface::class)) {
         public function __construct(
             protected WidgetConfigurationInterface $configuration,
             protected PageProviderInterface $dataProvider,
-            protected StandaloneView $view,
+            protected ViewInterface $view,
             array $options = []
         ) {
             $this->options = array_merge(
@@ -81,6 +80,6 @@ if (interface_exists(RequestAwareWidgetInterface::class)) {
             return $this->view->render();
         }
 
-        abstract protected function assignToView(ViewInterface|StandaloneView $view): void;
+        abstract protected function assignToView(ViewInterface $view): void;
     }
 }

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace YoastSeoForTypo3\YoastSeo\Service\Form;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Fluid\Core\Rendering\RenderingContextFactory;
+use TYPO3Fluid\Fluid\View\TemplateView;
 
 class NodeTemplateService
 {
@@ -14,19 +15,17 @@ class NodeTemplateService
      */
     public function renderView(string $template, array $data = []): string
     {
-        $templateView = $this->getStandaloneView();
-        $templateView->setPartialRootPaths(
+        $renderingContext = GeneralUtility::makeInstance(RenderingContextFactory::class)->create();
+        $templatePaths = $renderingContext->getTemplatePaths();
+        $templatePaths->setPartialRootPaths(
             [GeneralUtility::getFileAbsFileName('EXT:yoast_seo/Resources/Private/Partials/TCA')]
         );
-        $templateView->setTemplatePathAndFilename(
+        $templatePaths->setTemplatePathAndFilename(
             GeneralUtility::getFileAbsFileName('EXT:yoast_seo/Resources/Private/Templates/TCA/' . $template . '.html')
         );
+
+        $templateView = GeneralUtility::makeInstance(TemplateView::class, $renderingContext);
         $templateView->assignMultiple($data);
         return $templateView->render();
-    }
-
-    protected function getStandaloneView(): StandaloneView
-    {
-        return GeneralUtility::makeInstance(StandaloneView::class);
     }
 }

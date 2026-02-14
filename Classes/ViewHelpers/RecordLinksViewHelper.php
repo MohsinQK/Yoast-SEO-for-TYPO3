@@ -15,8 +15,17 @@ class RecordLinksViewHelper extends AbstractViewHelper
     {
         $this->registerArgument('uid', 'int', 'uid of record to be edited', true);
         $this->registerArgument('table', 'string', 'target database table', true);
-        $this->registerArgument('command', 'string', '', true, '');
-        $this->registerArgument('module', 'string', '', true, '');
+        $this->registerArgument('command', 'string', 'Command to execute (edit or delete)', false, '');
+        $this->registerArgument('module', 'string', 'Module name', false, '');
+    }
+
+    public function render(): string
+    {
+        return static::renderStatic(
+            $this->arguments,
+            $this->buildRenderChildrenClosure(),
+            $this->renderingContext
+        );
     }
 
     /**

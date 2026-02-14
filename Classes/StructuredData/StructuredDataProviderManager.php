@@ -67,7 +67,7 @@ class StructuredDataProviderManager implements SingletonInterface
     {
         $structuredData = [];
         foreach ($this->getOrderedStructuredDataProviders() as $provider => $configuration) {
-            $cacheIdentifier = $this->getTypoScriptFrontendController()->newHash . '-structured-data-' . $provider;
+            $cacheIdentifier = $this->getCacheIdentifier() . '-structured-data-' . $provider;
             if ($this->pageCache instanceof FrontendInterface) {
                 $data = $this->pageCache->get($cacheIdentifier);
                 if ($data !== false) {
@@ -84,7 +84,7 @@ class StructuredDataProviderManager implements SingletonInterface
                 $this->pageCache->set(
                     $cacheIdentifier,
                     $data,
-                    ['pageId_' . ($this->getTypoScriptFrontendController()->page['uid'] ?? $this->getTypoScriptFrontendController()->id)],
+                    ['pageId_' . $this->getCurrentPageId()],
                     $this->getCacheTimeout(),
                 );
             }
@@ -113,9 +113,9 @@ class StructuredDataProviderManager implements SingletonInterface
         return $providerObject;
     }
 
-    private function getTypoScriptFrontendController(): TypoScriptFrontendController
+    private function getTypoScriptFrontendController(): ?TypoScriptFrontendController
     {
-        return $GLOBALS['TSFE'];
+        return $GLOBALS['TSFE'] ?? null;
     }
 
     /**
@@ -135,11 +135,29 @@ class StructuredDataProviderManager implements SingletonInterface
      */
     private function getStructuredDataProviderConfiguration(): array
     {
+        $tsfe = $this->getTypoScriptFrontendController();
+        if ($tsfe !== null) {
+            $typoscriptService = GeneralUtility::makeInstance(TypoScriptService::class);
+            $config = $typoscriptService->convertTypoScriptArrayToPlainArray(
+                $tsfe->config['config'] ?? []
+            );
+            return $config['structuredData']['providers'] ?? [];
+        }
+
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request === null) {
+            return [];
+        }
+
+        $typoScript = $request->getAttribute('frontend.typoscript');
+        if ($typoScript === null) {
+            return [];
+        }
+
         $typoscriptService = GeneralUtility::makeInstance(TypoScriptService::class);
         $config = $typoscriptService->convertTypoScriptArrayToPlainArray(
-            $this->getTypoScriptFrontendController()->config['config'] ?? []
+            $typoScript->getConfigArray() ?? []
         );
-
         return $config['structuredData']['providers'] ?? [];
     }
 
@@ -189,6 +207,42 @@ class StructuredDataProviderManager implements SingletonInterface
         return '<!-- This site is optimized with the Yoast SEO for TYPO3 plugin - https://yoast.com/typo3-extensions-seo/ -->';
     }
 
+    protected function getCurrentPageId(): int
+    {
+        if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() < 13) {
+            return (int)($this->getTypoScriptFrontendController()->page['uid'] ?? $this->getTypoScriptFrontendController()->id);
+        }
+
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request === null) {
+            return 0;
+        }
+
+        $pageInformation = $request->getAttribute('frontend.page.information');
+        return $pageInformation ? $pageInformation->getId() : 0;
+    }
+
+    protected function getCacheIdentifier(): string
+    {
+        if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() < 13) {
+            return $this->getTypoScriptFrontendController()->newHash;
+        }
+
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request === null) {
+            return '';
+        }
+
+        $pageInformation = $request->getAttribute('frontend.page.information');
+        $language = $request->getAttribute('language');
+        $languageId = $language ? $language->getLanguageId() : 0;
+        return md5(
+            'page_' . $pageInformation->getId() .
+            '_' . $languageId .
+            '_' . ($pageInformation->getPageRecord()['tstamp'] ?? 0)
+        );
+    }
+
     protected function getCacheTimeout(): int
     {
         if (GeneralUtility::makeInstance(Typo3Version::class)->getMajorVersion() < 13) {
@@ -209,7 +263,6 @@ class StructuredDataProviderManager implements SingletonInterface
                 $pageInformation->getId(),
                 $pageInformation->getPageRecord(),
                 $typoScriptConfigArray,
-                0,
                 $context
             );
     }

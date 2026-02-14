@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace YoastSeoForTypo3\YoastSeo\EventListener;
 
+use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Seo\Event\ModifyUrlForCanonicalTagEvent;
 use YoastSeoForTypo3\YoastSeo\Record\Record;
@@ -37,6 +38,13 @@ class RecordCanonicalListener
 
     protected function getContentObjectRenderer(): ContentObjectRenderer
     {
-        return $GLOBALS['TSFE']->cObj;
+        $request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        if ($request instanceof ServerRequestInterface) {
+            $cObj = $request->getAttribute('currentContentObject');
+            if ($cObj instanceof ContentObjectRenderer) {
+                return $cObj;
+            }
+        }
+        return ($GLOBALS['TSFE'] ?? null)?->cObj ?? new ContentObjectRenderer();
     }
 }
